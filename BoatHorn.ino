@@ -26,18 +26,23 @@ int nPauseTime;    // seconds before unpausing
 bool bValueChanged = false;
 ezHeader header;
 
+// horn action list
+enum HORN_ACTION_TYPE { HORN_ACTION_ON, HORN_ACTION_OFF };
+typedef HORN_ACTION_TYPE HornActionType;
+HornActionType HaAlarm[] = { HORN_ACTION_ON,HORN_ACTION_OFF,HORN_ACTION_ON,HORN_ACTION_OFF, HORN_ACTION_ON,HORN_ACTION_OFF };
+
 // command lists
 enum HORN_TYPE {HORN_ALARM, HORN_WARNING, HORN_PORT, HORN_STARBOARD};
 struct Horn_Action {
     char* title;
+    HornActionType* actionList;
 };
 typedef Horn_Action HornAction;
 HornAction Horns[] = {
-    "ALARM",
-    "WARNING",
-    "PORT",
-    "STARBOARD",
-    NULL,
+    {"ALARM",HaAlarm},
+    {"WARNING",NULL},
+    {"PORT",NULL},
+    {"STARBOARD",NULL},
 };
 
 void setup() {
@@ -54,8 +59,8 @@ void setup() {
     prefs.end();
 
     mainMenu.txtSmall();
-    for (int ix = 0; Horns[ix].title; ++ix) {
-        mainMenu.addItem(Horns[ix].title);
+    for (HornAction ha : Horns) {
+        mainMenu.addItem(ha.title);
     }
     //ez.header.title("Horn Blower");
     //ez.header.show();
@@ -73,6 +78,9 @@ void loop() {
     if (str == "Set") {
         PlayerSettings();
         ez.header.show("Horn Blower");
+    }
+    else if (str == "Horn") {
+        // run the horn action
     }
 }
 
