@@ -11,13 +11,14 @@
 //#include <SPIFFS.h>
 #include <SD.h>
 #include <Preferences.h>
+#define _countof(array) (sizeof(array) / sizeof(array[0]))
 
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
 
 char* prefsName = "boathorn";
-ezMenu mainMenu("Horn Blower");
+ezMenu mainMenu("Horn Signals");
 // timer for pause
 #define PREFS_PAUSE_TIME "pausetime"
 int nPauseTime;    // seconds before unpausing
@@ -27,22 +28,23 @@ bool bValueChanged = false;
 ezHeader header;
 
 // horn action list
-enum HORN_ACTION_TYPE { HORN_ACTION_ON, HORN_ACTION_OFF };
+enum HORN_ACTION_TYPE { HORN_ACTION_SHORT, HORN_ACTION_LONG };
 typedef HORN_ACTION_TYPE HornActionType;
-HornActionType HaAlarm[] = { HORN_ACTION_ON,HORN_ACTION_OFF,HORN_ACTION_ON,HORN_ACTION_OFF, HORN_ACTION_ON,HORN_ACTION_OFF };
+HornActionType HaPassPort[] = { HORN_ACTION_SHORT };
+HornActionType HaPassStarboard[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT };
+HornActionType HaBackingUp[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
 
 // command lists
-enum HORN_TYPE {HORN_ALARM, HORN_WARNING, HORN_PORT, HORN_STARBOARD};
 struct Horn_Action {
     char* title;
     HornActionType* actionList;
+    int actionCount;
 };
 typedef Horn_Action HornAction;
 HornAction Horns[] = {
-    {"ALARM",HaAlarm},
-    {"WARNING",NULL},
-    {"PORT",NULL},
-    {"STARBOARD",NULL},
+    {"Pass Port Side",HaPassPort,_countof(HaPassPort)},
+    {"Pass Starboard Side",HaPassStarboard,_countof(HaPassStarboard)},
+    {"Backing Up",HaBackingUp,_countof(HaBackingUp)},
 };
 
 void setup() {
@@ -69,6 +71,11 @@ void setup() {
     //ez.canvas.print("Horn");
 
     Serial.println("START " __FILE__ " from " __DATE__);
+    //m5.Speaker.setBeep(500, 1000);
+    //m5.Speaker.beep();
+    //delay(1000);
+    //m5.Speaker.setBeep(2000, 100000);
+    //m5.Speaker.beep();
 }
 
 void loop() {
@@ -76,17 +83,48 @@ void loop() {
     mainMenu.runOnce();
     String str = mainMenu.pickButton();
     if (str == "Set") {
-        PlayerSettings();
+        Settings();
         ez.header.show("Horn Blower");
     }
     else if (str == "Horn") {
         // run the horn action
+        int ix = mainMenu.pick() - 1;
+        PlayHorn(Horns[ix].actionList, Horns[ix].actionCount);
+        //Serial.println("pick: " + String(ix));
     }
 }
 
-void PlayerSettings()
+// play the horn sequence
+void PlayHorn(HornActionType* actionList, int count)
 {
-    ezMenu menuPlayerSettings("Player Settings");
+    while (count--) {
+        switch (*actionList) {
+        case HORN_ACTION_SHORT:
+            m5.Speaker.setBeep(500, 1);
+            m5.Speaker.beep();
+            delay(1000);
+            m5.Speaker.end();
+            break;
+        case HORN_ACTION_LONG:
+            m5.Speaker.setBeep(500, 1);
+            m5.Speaker.beep();
+            delay(5000);
+            m5.Speaker.end();
+            break;
+        default:
+            break;
+        }
+        if (count) {
+            delay(1000);
+            // get the next one
+            ++actionList;
+        }
+    }
+}
+
+void Settings()
+{
+    ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
     menuPlayerSettings.addItem("Pause Timer", &nPauseTime, 10, 600, 0, HandleMenuInteger);
