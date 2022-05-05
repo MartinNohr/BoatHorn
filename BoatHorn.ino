@@ -168,11 +168,22 @@ void PlayHorn(int hix)
 		else {
 			// wait the prescribed amount of time and repeat
             if (bRepeat1S)
-                delay(1000);
+                bRun = !CheckCancel(1000);
             else if (bRepeat2S)
-                delay(2000);
-		}
+                bRun = !CheckCancel(2000);
+        }
     }
+}
+
+// wait mS for cancel
+bool CheckCancel(unsigned long nWait)
+{
+    unsigned long until = millis() + nWait;
+    while (millis() < until) {
+        if (ez.buttons.poll() == "Cancel")
+            return true;
+    }
+    return false;
 }
 
 void Settings()
