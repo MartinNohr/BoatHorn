@@ -19,21 +19,34 @@ String FormatInteger(int num, int decimals);
 
 char* prefsName = "boathorn";
 ezMenu mainMenu("Horn Signals");
-// timer for pause
+// timer for pause between blasts
 #define PREFS_PAUSE_TIME "pausetime"
-int nPauseTime;    // seconds before unpausing
+int nPauseTime;    // milliseconds before next blast
 
 // this is set if any integer values changed by int or bool handlers
 bool bValueChanged = false;
 ezHeader header;
 
 // horn action list
-enum HORN_ACTION_TYPE { HORN_ACTION_SHORT, HORN_ACTION_LONG };
+enum HORN_ACTION_TYPE {
+    HORN_ACTION_SHORT,
+    HORN_ACTION_LONG,
+    HORN_ACTION_REPEAT_1MIN,
+    HORN_ACTION_REPEAT_2MIN,
+};
 typedef HORN_ACTION_TYPE HornActionType;
+HornActionType HaShort[] = { HORN_ACTION_SHORT };
+HornActionType HaLong[] = { HORN_ACTION_LONG };
+HornActionType HaDanger[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT, HORN_ACTION_SHORT, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
 HornActionType HaPassPort[] = { HORN_ACTION_SHORT };
 HornActionType HaPassStarboard[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT };
 HornActionType HaBackingUp[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
-
+HornActionType HaBlindBend[] = { HORN_ACTION_LONG };
+HornActionType HaBackingOutOfDock[] = {HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT};
+HornActionType HaBlindFogPower[] = { HORN_ACTION_REPEAT_1MIN, HORN_ACTION_LONG };
+HornActionType HaBlindFogSailing[] = { HORN_ACTION_REPEAT_1MIN, HORN_ACTION_LONG, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
+HornActionType HaChannelPassingPort[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT };
+HornActionType HaChannelPassingStarboard[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
 // command lists
 struct Horn_Action {
     char* title;
@@ -42,9 +55,18 @@ struct Horn_Action {
 };
 typedef Horn_Action HornAction;
 HornAction Horns[] = {
+    {"Short Blast",HaShort,_countof(HaShort)},
+    {"Long Blast",HaLong,_countof(HaLong)},
+    {"Danger",HaDanger,_countof(HaDanger)},
     {"Pass Port Side",HaPassPort,_countof(HaPassPort)},
     {"Pass Starboard Side",HaPassStarboard,_countof(HaPassStarboard)},
     {"Backing Up",HaBackingUp,_countof(HaBackingUp)},
+    {"Blind Bend",HaBlindBend,_countof(HaBlindBend)},
+    {"Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock)},
+    {"Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower)},
+    {"Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing)},
+    {"Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort)},
+    {"Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard)},
 };
 
 void setup() {
@@ -57,7 +79,7 @@ void setup() {
     // get saved values
     Preferences prefs;
     prefs.begin(prefsName, true);
-    nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 60);
+    nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 1000);
     prefs.end();
 
     mainMenu.txtSmall();
@@ -89,14 +111,16 @@ void loop() {
     else if (str == "Horn") {
         // run the horn action
         int ix = mainMenu.pick() - 1;
-        PlayHorn(Horns[ix].actionList, Horns[ix].actionCount);
+        PlayHorn(ix);
         //Serial.println("pick: " + String(ix));
     }
 }
 
 // play the horn sequence
-void PlayHorn(HornActionType* actionList, int count)
+void PlayHorn(int hix)
 {
+    HornActionType* actionList = Horns[hix].actionList;
+    int count = Horns[hix].actionCount;
     while (count--) {
         switch (*actionList) {
         case HORN_ACTION_SHORT:
@@ -115,7 +139,7 @@ void PlayHorn(HornActionType* actionList, int count)
             break;
         }
         if (count) {
-            delay(1000);
+            delay(nPauseTime);
             // get the next one
             ++actionList;
         }
@@ -127,7 +151,7 @@ void Settings()
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
-    menuPlayerSettings.addItem("Pause Timer", &nPauseTime, 10, 600, 0, HandleMenuInteger);
+    menuPlayerSettings.addItem("Pause Timer (between blasts)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
