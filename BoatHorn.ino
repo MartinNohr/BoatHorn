@@ -118,6 +118,7 @@ void loop() {
 // play the horn sequence
 void PlayHorn(int hix)
 {
+    ez.buttons.show(" #  #  # Cancel #  # ");
     HornActionType* actionList = Horns[hix].actionList;
     int count = Horns[hix].actionCount;
     while (count--) {
@@ -150,7 +151,7 @@ void Settings()
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
-    menuPlayerSettings.addItem("Pause Timer (between blasts)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
+    menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
