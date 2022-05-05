@@ -44,7 +44,7 @@ HornActionType HaBackingUp[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION
 HornActionType HaBlindBend[] = { HORN_ACTION_LONG };
 HornActionType HaBackingOutOfDock[] = {HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT};
 HornActionType HaBlindFogPower[] = { HORN_ACTION_REPEAT_1MIN, HORN_ACTION_LONG };
-HornActionType HaBlindFogSailing[] = { HORN_ACTION_REPEAT_1MIN, HORN_ACTION_LONG, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
+HornActionType HaBlindFogSailing[] = { HORN_ACTION_REPEAT_2MIN, HORN_ACTION_LONG, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
 HornActionType HaChannelPassingPort[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT };
 HornActionType HaChannelPassingStarboard[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
 // command lists
@@ -63,8 +63,8 @@ HornAction Horns[] = {
     {"Backing Up",HaBackingUp,_countof(HaBackingUp)},
     {"Blind Bend",HaBlindBend,_countof(HaBlindBend)},
     {"Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock)},
-    {"Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower)},
-    {"Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing)},
+    {"Blind/Fog Power Vessel (repeats)",HaBlindFogPower,_countof(HaBlindFogPower)},
+    {"Blind/Fog Sailing Vessel (repeats)",HaBlindFogSailing,_countof(HaBlindFogSailing)},
     {"Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort)},
     {"Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard)},
 };
@@ -112,7 +112,6 @@ void loop() {
         // run the horn action
         int ix = mainMenu.pick() - 1;
         PlayHorn(ix);
-        //Serial.println("pick: " + String(ix));
     }
 }
 
