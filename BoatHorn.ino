@@ -118,31 +118,60 @@ void loop() {
 // play the horn sequence
 void PlayHorn(int hix)
 {
+    bool bRepeat1S = false, bRepeat2S = false;
+    // get and remember if the first command is a repeat one, inc hix if so to skip
+    switch (*(Horns[hix].actionList)) {
+    case HORN_ACTION_REPEAT_1MIN:
+        bRepeat1S = true;
+        break;
+    case HORN_ACTION_REPEAT_2MIN:
+        bRepeat2S = true;
+        break;
+    }
+    bool bRun = true;
     ez.buttons.show(" #  #  # Cancel #  # ");
-    HornActionType* actionList = Horns[hix].actionList;
-    int count = Horns[hix].actionCount;
-    while (count--) {
-        switch (*actionList) {
-        case HORN_ACTION_SHORT:
-            m5.Speaker.setBeep(500, 1);
-            m5.Speaker.beep();
-            delay(1000);
-            m5.Speaker.end();
-            break;
-        case HORN_ACTION_LONG:
-            m5.Speaker.setBeep(500, 1);
-            m5.Speaker.beep();
-            delay(5000);
-            m5.Speaker.end();
-            break;
-        default:
-            break;
+    while (bRun) {
+        HornActionType* actionList = Horns[hix].actionList;
+        int count = Horns[hix].actionCount;
+        while (count--) {
+            switch (*actionList) {
+            case HORN_ACTION_SHORT:
+                m5.Speaker.setBeep(500, 1);
+                m5.Speaker.beep();
+                delay(1000);
+                m5.Speaker.end();
+                break;
+            case HORN_ACTION_LONG:
+                m5.Speaker.setBeep(500, 1);
+                m5.Speaker.beep();
+                delay(5000);
+                m5.Speaker.end();
+                break;
+            default:
+                break;
+            }
+            if (count) {
+                delay(nPauseTime);
+                // get the next one
+                ++actionList;
+            }
         }
-        if (count) {
-            delay(nPauseTime);
-            // get the next one
-            ++actionList;
-        }
+        //Serial.println(ez.buttons.poll());
+        // exit if no repeats
+		if (!(bRepeat1S || bRepeat2S)) {
+			bRun = false;
+		}
+		// first check if cancel
+		else if (ez.buttons.poll() == "Cancel") {
+			bRun = false;
+		}
+		else {
+			// wait the prescribed amount of time and repeat
+            if (bRepeat1S)
+                delay(1000);
+            else if (bRepeat2S)
+                delay(2000);
+		}
     }
 }
 
