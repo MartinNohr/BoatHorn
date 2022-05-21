@@ -63,8 +63,8 @@ HornAction Horns[] = {
     {"Backing Up",HaBackingUp,_countof(HaBackingUp)},
     {"Blind Bend",HaBlindBend,_countof(HaBlindBend)},
     {"Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock)},
-    {"Blind/Fog Power Vessel (repeats)",HaBlindFogPower,_countof(HaBlindFogPower)},
-    {"Blind/Fog Sailing Vessel (repeats)",HaBlindFogSailing,_countof(HaBlindFogSailing)},
+    {"Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower)},
+    {"Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing)},
     {"Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort)},
     {"Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard)},
 };
@@ -93,7 +93,28 @@ void setup() {
 
     mainMenu.txtSmall();
     for (HornAction ha : Horns) {
-        mainMenu.addItem(ha.title);
+        // build the string
+        String menuStr = ha.title + String(" (");
+        for (int hix = 0; hix < ha.actionCount; ++hix) {
+            switch (ha.actionList[hix]) {
+            case HORN_ACTION_REPEAT_1MIN:
+                menuStr += "R1";
+                break;
+            case HORN_ACTION_REPEAT_2MIN:
+                menuStr += "R2";
+                break;
+            case HORN_ACTION_SHORT:
+                menuStr += 'S';
+                break;
+            case HORN_ACTION_LONG:
+                menuStr += 'L';
+                break;
+            default:
+                break;
+            }
+        }
+        menuStr += ')';
+        mainMenu.addItem(menuStr);
     }
     //ez.header.title("Horn Blower");
     //ez.header.show();
