@@ -68,6 +68,15 @@ HornAction Horns[] = {
     {"Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort)},
     {"Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard)},
 };
+HornActionType BellOne[] = { HORN_ACTION_SHORT };
+HornActionType BellTwo[] = { HORN_ACTION_SHORT, HORN_ACTION_SHORT };
+HornAction Bells[] = {
+    {"One Bell",BellOne,_countof(BellOne)},
+    {"Two Bells",BellTwo,_countof(BellTwo)},
+};
+
+#define RELAY1 22
+#define RELAY2 21
 
 void setup() {
 #include <themes/default.h>
@@ -98,6 +107,10 @@ void setup() {
     //delay(1000);
     //m5.Speaker.setBeep(2000, 100000);
     //m5.Speaker.beep();
+    pinMode(RELAY1, OUTPUT);
+    digitalWrite(RELAY1, LOW);
+    pinMode(RELAY2, OUTPUT);
+    digitalWrite(RELAY2, LOW);
 }
 
 void loop() {
@@ -134,21 +147,24 @@ void PlayHorn(int hix)
         HornActionType* actionList = Horns[hix].actionList;
         int count = Horns[hix].actionCount;
         while (count--) {
+            uint32_t hornlen = 0;
             switch (*actionList) {
             case HORN_ACTION_SHORT:
-                m5.Speaker.setBeep(500, 1);
-                m5.Speaker.beep();
-                delay(1000);
-                m5.Speaker.end();
+                hornlen = 1000;
                 break;
             case HORN_ACTION_LONG:
-                m5.Speaker.setBeep(500, 1);
-                m5.Speaker.beep();
-                delay(5000);
-                m5.Speaker.end();
+                hornlen = 5000;
                 break;
             default:
                 break;
+            }
+            if (hornlen) {
+                digitalWrite(RELAY1, HIGH);
+                m5.Speaker.setBeep(500, 1);
+                m5.Speaker.beep();
+                delay(hornlen);
+                m5.Speaker.end();
+                digitalWrite(RELAY1, LOW);
             }
             if (count) {
                 delay(nPauseTime);
