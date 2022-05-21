@@ -22,6 +22,9 @@ ezMenu mainMenu("Horn Signals");
 // timer for pause between blasts
 #define PREFS_PAUSE_TIME "pausetime"
 int nPauseTime;    // milliseconds before next blast
+// enable beep sound
+#define PREFS_BEEP_SOUND "beepsound"
+bool bBeepSound = false;
 
 // this is set if any integer values changed by int or bool handlers
 bool bValueChanged = false;
@@ -89,6 +92,7 @@ void setup() {
     Preferences prefs;
     prefs.begin(prefsName, true);
     nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 1000);
+    bBeepSound = prefs.getBool(PREFS_BEEP_SOUND, false);
     prefs.end();
 
     mainMenu.txtSmall();
@@ -180,11 +184,15 @@ void PlayHorn(int hix)
                 break;
             }
             if (hornlen) {
-                digitalWrite(RELAY1, HIGH);
-                m5.Speaker.setBeep(500, 1);
-                m5.Speaker.beep();
-                delay(hornlen);
-                m5.Speaker.end();
+				digitalWrite(RELAY1, HIGH);
+				if (bBeepSound) {
+					m5.Speaker.setBeep(500, 1);
+					m5.Speaker.beep();
+				}
+				delay(hornlen);
+				if (bBeepSound) {
+					m5.Speaker.end();
+				}
                 digitalWrite(RELAY1, LOW);
             }
             if (count) {
@@ -229,6 +237,7 @@ void Settings()
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
     menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
+    menuPlayerSettings.addItem("Beep Sound", &bBeepSound, "On", "Off", ToggleBool);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
@@ -243,6 +252,7 @@ void Settings()
                 Preferences prefs;
                 prefs.begin(prefsName);
                 prefs.putInt(PREFS_PAUSE_TIME, nPauseTime);
+                prefs.putBool(PREFS_BEEP_SOUND, bBeepSound);
                 prefs.end();
             }
             break;
