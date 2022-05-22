@@ -156,18 +156,19 @@ void loop() {
 // play the horn sequence
 void PlayHorn(int hix)
 {
-    bool bRepeat1S = false, bRepeat2S = false;
+    bool bRepeat1M = false, bRepeat2M = false;
     // get and remember if the first command is a repeat one, inc hix if so to skip
     switch (*(Horns[hix].actionList)) {
     case HORN_ACTION_REPEAT_1MIN:
-        bRepeat1S = true;
+        bRepeat1M = true;
         break;
     case HORN_ACTION_REPEAT_2MIN:
-        bRepeat2S = true;
+        bRepeat2M = true;
         break;
     }
     bool bRun = true;
-    ez.buttons.show(" #  #  # Cancel #  # ");
+    ez.header.show(Horns[hix].title);
+    ez.buttons.show(" #  # Cancel #  #  # ");
     while (bRun) {
         HornActionType* actionList = Horns[hix].actionList;
         int count = Horns[hix].actionCount;
@@ -203,7 +204,7 @@ void PlayHorn(int hix)
         }
         //Serial.println(ez.buttons.poll());
         // exit if no repeats
-		if (!(bRepeat1S || bRepeat2S)) {
+		if (!(bRepeat1M || bRepeat2M)) {
 			bRun = false;
 		}
 		// first check if cancel
@@ -212,10 +213,10 @@ void PlayHorn(int hix)
 		}
 		else {
 			// wait the prescribed amount of time and repeat
-            if (bRepeat1S)
-                bRun = !CheckCancel(1000);
-            else if (bRepeat2S)
-                bRun = !CheckCancel(2000);
+            if (bRepeat1M)
+				bRun = !CheckCancel(1000 * 60);
+            else if (bRepeat2M)
+				bRun = !CheckCancel(2000 * 60);
         }
     }
 }
