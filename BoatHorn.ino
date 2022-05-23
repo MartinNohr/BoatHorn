@@ -167,12 +167,13 @@ void PlayHorn(int hix)
         break;
     }
     bool bRun = true;
+    bool bCancel = false;
     ez.header.show(Horns[hix].title);
     ez.buttons.show(" #  # Cancel #  #  # ");
     while (bRun) {
         HornActionType* actionList = Horns[hix].actionList;
         int count = Horns[hix].actionCount;
-        while (count--) {
+		while (!bCancel && count--) {
             uint32_t hornlen = 0;
             switch (*actionList) {
             case HORN_ACTION_SHORT:
@@ -190,14 +191,14 @@ void PlayHorn(int hix)
 					m5.Speaker.setBeep(500, 1);
 					m5.Speaker.beep();
 				}
-				delay(hornlen);
+                bCancel = CheckCancel(hornlen);
 				if (bBeepSound) {
 					m5.Speaker.end();
 				}
                 digitalWrite(RELAY1, LOW);
             }
-            if (count) {
-                delay(nPauseTime);
+			if (!bCancel && count) {
+                bCancel = CheckCancel(nPauseTime);
                 // get the next one
                 ++actionList;
             }
@@ -208,7 +209,7 @@ void PlayHorn(int hix)
 			bRun = false;
 		}
 		// first check if cancel
-		else if (ez.buttons.poll() == "Cancel") {
+		else if (bCancel) {
 			bRun = false;
 		}
 		else {
@@ -224,7 +225,7 @@ void PlayHorn(int hix)
 // wait mS for cancel
 bool CheckCancel(unsigned long nWait)
 {
-    unsigned long until = millis() + nWait;
+    uint32_t until = millis() + nWait;
     while (millis() < until) {
         if (ez.buttons.poll() == "Cancel")
             return true;
