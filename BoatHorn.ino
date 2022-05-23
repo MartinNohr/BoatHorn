@@ -244,6 +244,7 @@ void Settings()
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
     menuPlayerSettings.addItem("Power Off", Shutdown);
+    menuPlayerSettings.addItem("Version 1.0");
     while (true) {
         menuPlayerSettings.runOnce();
         if (menuPlayerSettings.pickButton() == "Back") {
