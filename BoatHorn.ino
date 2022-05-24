@@ -191,14 +191,14 @@ void PlayHorn(int hix)
 					m5.Speaker.setBeep(500, 1);
 					m5.Speaker.beep();
 				}
-                bCancel = CheckCancel(hornlen);
+				bCancel = CheckCancel(hornlen, "horn on");
 				if (bBeepSound) {
 					m5.Speaker.end();
 				}
                 digitalWrite(RELAY1, LOW);
             }
 			if (!bCancel && count) {
-                bCancel = CheckCancel(nPauseTime);
+				bCancel = CheckCancel(nPauseTime, "pause");
                 // get the next one
                 ++actionList;
             }
@@ -215,18 +215,20 @@ void PlayHorn(int hix)
 		else {
 			// wait the prescribed amount of time and repeat
             if (bRepeat1M)
-				bRun = !CheckCancel(1000 * 60);
+				bRun = !CheckCancel(1000 * 60, "waiting to repeat");
             else if (bRepeat2M)
-				bRun = !CheckCancel(2000 * 60);
+				bRun = !CheckCancel(2000 * 60, "waiting to repeat");
         }
     }
 }
 
 // wait mS for cancel
-bool CheckCancel(unsigned long nWait)
+bool CheckCancel(unsigned long nWait, String title)
 {
+	ezProgressBar pb(title, String(nWait/1000), " #  # Cancel #  #  # ");
     uint32_t until = millis() + nWait;
     while (millis() < until) {
+		pb.value(100.0 - (((until - millis()) * 100.0) / nWait));
         if (ez.buttons.poll() == "Cancel")
             return true;
     }
