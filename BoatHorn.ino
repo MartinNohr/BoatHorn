@@ -198,7 +198,8 @@ void PlayHorn(int hix)
                 digitalWrite(RELAY1, LOW);
             }
 			if (!bCancel && count) {
-				bCancel = CheckCancel(nPauseTime, "pause");
+				if (hornlen)
+					bCancel = CheckCancel(nPauseTime, "pause");
                 // get the next one
                 ++actionList;
             }
@@ -225,7 +226,7 @@ void PlayHorn(int hix)
 // wait mS for cancel
 bool CheckCancel(unsigned long nWait, String title)
 {
-	ezProgressBar pb(title, String(nWait/1000), " #  # Cancel #  #  # ");
+	ezProgressBar pb(title, String(nWait / 1000) + " Second" + (nWait <= 1000 ? "" : "s"), " #  # Cancel #  #  # ");
     uint32_t until = millis() + nWait;
     while (millis() < until) {
 		pb.value(100.0 - (((until - millis()) * 100.0) / nWait));
