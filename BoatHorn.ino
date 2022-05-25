@@ -240,7 +240,7 @@ void Settings()
 {
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
-    menuPlayerSettings.buttons("up # # Go # Back # down #");
+    menuPlayerSettings.buttons("up # Back # Go # # down #");
     menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Beep Sound", &bBeepSound, "On", "Off", ToggleBool);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
