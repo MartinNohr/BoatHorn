@@ -3,6 +3,7 @@
  Created:	4/27/2022 8:42:56 PM
  Author:	Martin Nohr
 */
+
 #include <stack>
 #include <M5ez.h>
 #include <M5Stack.h>
@@ -13,6 +14,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
+const char* Version = "Version 1.1";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -247,7 +249,7 @@ void Settings()
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
     menuPlayerSettings.addItem("Power Off", Shutdown);
-    menuPlayerSettings.addItem("Version 1.0");
+	menuPlayerSettings.addItem(String(Version) + " " + __DATE__ + " " + __TIME__);
     while (true) {
         menuPlayerSettings.runOnce();
         if (menuPlayerSettings.pickButton() == "Back") {
