@@ -249,6 +249,7 @@ void Settings()
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
     menuPlayerSettings.addItem("Power Off", Shutdown);
+    menuPlayerSettings.addItem("Download new version", HandleOTA);
 	menuPlayerSettings.addItem(String(Version) + " " + __DATE__ + " " + __TIME__);
     while (true) {
         menuPlayerSettings.runOnce();
@@ -385,4 +386,19 @@ String FormatInteger(int num, int decimals)
         str = String(num);
     }
     return str;
+}
+
+// OTA handler
+void HandleOTA()
+{
+	ezProgressBar pb("OTA update in progress", "Downloading ...", "Abort");
+	String url = "https://raw.githubusercontent.com/M5ez/M5ez/master/compiled_binaries/M5ez-demo.bin";
+#include "raw_githubusercontent_com.h"
+	if (ez.wifi.update(url, root_cert, &pb)) {
+		ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
+		ESP.restart();
+	}
+	else {
+		ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
+	}
 }

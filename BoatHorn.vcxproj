@@ -111,6 +111,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="raw_githubusercontent_com.h" />
     <ClInclude Include="__vm\.BoatHorn.vsarduino.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

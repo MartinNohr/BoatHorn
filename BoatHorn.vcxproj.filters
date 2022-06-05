@@ -21,5 +21,8 @@
     <ClInclude Include="__vm\.BoatHorn.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="raw_githubusercontent_com.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
