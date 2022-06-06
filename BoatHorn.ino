@@ -14,7 +14,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 1.1";
+const char* Version = "Version 1.2";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -391,9 +391,10 @@ String FormatInteger(int num, int decimals)
 // OTA handler
 void HandleOTA()
 {
+
 	ezProgressBar pb("OTA update in progress", "Downloading ...", "Abort");
-	String url = "https://raw.githubusercontent.com/M5ez/M5ez/master/compiled_binaries/M5ez-demo.bin";
-#include "raw_githubusercontent_com.h"
+	String url = "https://raw.githubusercontent.com/MartinNohr/BoatHorn/master/Release/BoatHorn.bin";
+#include"raw_githubusercontent_com.h"
 	if (ez.wifi.update(url, root_cert, &pb)) {
 		ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
 		ESP.restart();
