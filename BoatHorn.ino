@@ -14,7 +14,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 1.2";
+const char* Version = "Version 1.1";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
