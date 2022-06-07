@@ -14,7 +14,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 1.1";
+const char* Version = "Version 1.2";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -190,13 +190,14 @@ void PlayHorn(int hix)
             if (hornlen) {
 				digitalWrite(RELAY1, HIGH);
 				if (bBeepSound) {
-					m5.Speaker.setBeep(500, 1);
+                    m5.Speaker.begin();
+                    m5.Speaker.setBeep(500, hornlen);
 					m5.Speaker.beep();
 				}
 				bCancel = CheckCancel(hornlen, "horn on");
-				if (bBeepSound) {
-					m5.Speaker.end();
-				}
+				//if (bBeepSound) {
+				//	m5.Speaker.end();
+				//}
                 digitalWrite(RELAY1, LOW);
             }
 			if (!bCancel && count) {
@@ -242,7 +243,7 @@ void Settings()
 {
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
-    menuPlayerSettings.buttons("up # Back # Go # # down #");
+    menuPlayerSettings.buttons("up # # Go # Back # down #");
     menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Beep Sound", &bBeepSound, "On", "Off", ToggleBool);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
