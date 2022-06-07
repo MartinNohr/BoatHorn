@@ -250,7 +250,7 @@ void Settings()
     menuPlayerSettings.addItem("System Settings", ez.settings.menu);
     menuPlayerSettings.addItem("Restart", Restart);
     menuPlayerSettings.addItem("Power Off", Shutdown);
-    menuPlayerSettings.addItem("Download new version", HandleOTA);
+    menuPlayerSettings.addItem("Download New Firmware", HandleOTA);
 	menuPlayerSettings.addItem(String(Version) + " " + __DATE__ + " " + __TIME__);
     while (true) {
         menuPlayerSettings.runOnce();
@@ -392,15 +392,17 @@ String FormatInteger(int num, int decimals)
 // OTA handler
 void HandleOTA()
 {
-
-	ezProgressBar pb("OTA update in progress", "Downloading ...", "Abort");
-	String url = "https://raw.githubusercontent.com/MartinNohr/BoatHorn/master/Release/BoatHorn.bin";
+	String ret = ez.msgBox("New Firmware", "Download New Firmware?", "Cancel # OK #");
+	if (ret == "OK") {
+		ezProgressBar pb("OTA update in progress", "Downloading ...", "Abort");
+		String url = "https://raw.githubusercontent.com/MartinNohr/BoatHorn/master/Release/BoatHorn.bin";
 #include"raw_githubusercontent_com.h"
-	if (ez.wifi.update(url, root_cert, &pb)) {
-		ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
-		ESP.restart();
-	}
-	else {
-		ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
+		if (ez.wifi.update(url, root_cert, &pb)) {
+			ez.msgBox("Over The Air updater", "OTA download successful. Reboot to new firmware", "Reboot");
+			ESP.restart();
+		}
+		else {
+			ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
+		}
 	}
 }
