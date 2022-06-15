@@ -14,7 +14,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 1.2";
+const char* Version = "Version 0.1";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -80,8 +80,8 @@ HornAction Bells[] = {
     {"Two Bells",BellTwo,_countof(BellTwo)},
 };
 
-#define RELAY1 22
-#define RELAY2 21
+#define RELAY1 21
+#define RELAY2 22
 
 void setup() {
 #include <themes/default.h>
@@ -129,15 +129,12 @@ void setup() {
     //ez.canvas.print("Horn");
 
     Serial.println("START " __FILE__ " from " __DATE__);
-    //m5.Speaker.setBeep(500, 1000);
-    //m5.Speaker.beep();
-    //delay(1000);
-    //m5.Speaker.setBeep(2000, 100000);
-    //m5.Speaker.beep();
     pinMode(RELAY1, OUTPUT);
     digitalWrite(RELAY1, LOW);
     pinMode(RELAY2, OUTPUT);
     digitalWrite(RELAY2, LOW);
+    // check for update bin file
+    CheckUpdateBin();
 }
 
 void loop() {
@@ -405,4 +402,20 @@ void HandleOTA()
 			ez.msgBox("OTA error", ez.wifi.updateError(), "OK");
 		}
 	}
+}
+
+// see if there is an update bin file in the SD slot
+void CheckUpdateBin()
+{
+	const char* binFile = "/BoatHorn.bin";
+    if (SD.exists(binFile)) {
+		String str = ez.msgBox("Update File", "Load New Firmware From SD?", "Cancel # OK # Cancel");
+		if (str == "OK") {
+			//SD.remove(binFile);
+			ESP.restart();
+		}
+    }
+    else {
+        ez.msgBox("file missing", "no bin file", "Cancel # OK # Cancel");
+    }
 }
