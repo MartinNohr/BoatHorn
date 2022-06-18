@@ -9,12 +9,13 @@
 #include <M5Stack.h>
 #include <EEPROM.h>
 #include <ezTime.h>
+#include <Update.h>
 //#include <SPIFFS.h>
 #include <SD.h>
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 0.1";
+const char* Version = "Version 0.2";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -404,18 +405,42 @@ void HandleOTA()
 	}
 }
 
+ezProgressBar* pUpdateProgress = NULL;
+// display updating progress
+void ProgressDisplay(size_t done, size_t total)
+{
+	pUpdateProgress->value((float)done * 100.0 / total);
+    //Serial.println("done: " + String(done) + " total: " + String(total));
+}
+
 // see if there is an update bin file in the SD slot
 void CheckUpdateBin()
 {
-	const char* binFile = "/BoatHorn.bin";
-    if (SD.exists(binFile)) {
+	const char* binFileName = "/BoatHorn.bin";
+    if (SD.exists(binFileName)) {
 		String str = ez.msgBox("Update File", "Load New Firmware From SD?", "Cancel # OK # Cancel");
 		if (str == "OK") {
-			//SD.remove(binFile);
-			ESP.restart();
+            File binFile = SD.open(binFileName);
+            if (binFile) {
+                pUpdateProgress = new ezProgressBar("Updating", "Progress");
+                size_t binSize = binFile.size();
+                Serial.println("size: " + String(binSize));
+                Update.begin(binSize);
+                Update.onProgress(ProgressDisplay);
+				size_t bytesWritten = Update.writeStream(binFile);
+                Serial.println("written: " + String(bytesWritten));
+                Update.end();
+                binFile.close();
+                str = ez.msgBox("Update File", "Delete BIN file?", "No # Yes # No");
+                if (str == "Yes") {
+					SD.remove(binFileName);
+                }
+                delete pUpdateProgress;
+				ESP.restart();
+            }
 		}
     }
-    else {
-        ez.msgBox("file missing", "no bin file", "Cancel # OK # Cancel");
-    }
+    //else {
+    //    ez.msgBox("file missing", "no bin file", "Cancel # OK # Cancel");
+    //}
 }
