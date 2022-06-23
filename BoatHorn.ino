@@ -15,7 +15,7 @@
 #include <Preferences.h>
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 0.2";
+const char* Version = "Version 0.3";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -192,7 +192,7 @@ void PlayHorn(int hix)
                     m5.Speaker.setBeep(500, hornlen);
 					m5.Speaker.beep();
 				}
-				bCancel = CheckCancel(hornlen, "horn on");
+				bCancel = CheckCancel(hornlen, "horn on", "Second(s) Horn");
 				//if (bBeepSound) {
 				//	m5.Speaker.end();
 				//}
@@ -200,7 +200,7 @@ void PlayHorn(int hix)
             }
 			if (!bCancel && count) {
 				if (hornlen)
-					bCancel = CheckCancel(nPauseTime, "pause");
+					bCancel = CheckCancel(nPauseTime, "pause", "Second(s) Off");
                 // get the next one
                 ++actionList;
             }
@@ -217,17 +217,17 @@ void PlayHorn(int hix)
 		else {
 			// wait the prescribed amount of time and repeat
             if (bRepeat1M)
-				bRun = !CheckCancel(1000 * 60, "waiting to repeat");
+				bRun = !CheckCancel(1000 * 60, "waiting to repeat", "Repeat");
             else if (bRepeat2M)
-				bRun = !CheckCancel(2000 * 60, "waiting to repeat");
+				bRun = !CheckCancel(2000 * 60, "waiting to repeat", "Repeat");
         }
     }
 }
 
 // wait mS for cancel
-bool CheckCancel(unsigned long nWait, String title)
+bool CheckCancel(unsigned long nWait, String strTitle, String strLabel)
 {
-	ezProgressBar pb(title, String(nWait / 1000) + " Second" + (nWait <= 1000 ? "" : "s"), " #  # Cancel #  #  # ");
+	ezProgressBar pb(strTitle, String(nWait / 1000) + " " + strLabel, " #  # Cancel #  #  # ");
     uint32_t until = millis() + nWait;
     while (millis() < until) {
 		pb.value(100.0 - (((until - millis()) * 100.0) / nWait));
@@ -249,7 +249,7 @@ void Settings()
     menuPlayerSettings.addItem("Restart", Restart);
     menuPlayerSettings.addItem("Power Off", Shutdown);
     menuPlayerSettings.addItem("Download New Firmware", HandleOTA);
-	menuPlayerSettings.addItem(String(Version) + " " + __DATE__ + " " + __TIME__);
+	menuPlayerSettings.addItem(String(Version) + " " + __DATE__/* + " " + __TIME__*/);
     while (true) {
         menuPlayerSettings.runOnce();
         if (menuPlayerSettings.pickButton() == "Back") {
