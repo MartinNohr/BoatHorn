@@ -4,7 +4,6 @@
  Author:	Martin Nohr
 */
 
-#include <stack>
 #include <M5ez.h>
 #include <M5Stack.h>
 #include <EEPROM.h>
@@ -13,9 +12,10 @@
 //#include <SPIFFS.h>
 #include <SD.h>
 #include <Preferences.h>
+
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 0.3";
+const char* Version = "Version 0.4";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -23,10 +23,10 @@ String FormatInteger(int num, int decimals);
 char* prefsName = "boathorn";
 ezMenu mainMenu("Horn Signals");
 // timer for pause between blasts
-#define PREFS_PAUSE_TIME "pausetime"
+constexpr auto PREFS_PAUSE_TIME = "pausetime";
 int nPauseTime;    // milliseconds before next blast
 // enable beep sound
-#define PREFS_BEEP_SOUND "beepsound"
+constexpr auto PREFS_BEEP_SOUND = "beepsound";
 bool bBeepSound = false;
 
 // this is set if any integer values changed by int or bool handlers
@@ -60,33 +60,34 @@ struct Horn_Action {
     int actionCount;
 };
 typedef Horn_Action HornAction;
-HornAction Horns[] = {
-    {"Short Blast",HaShort,_countof(HaShort)},
-    {"Long Blast",HaLong,_countof(HaLong)},
-    {"Danger",HaDanger,_countof(HaDanger)},
-    {"Pass Port Side",HaPassPort,_countof(HaPassPort)},
-    {"Pass Starboard Side",HaPassStarboard,_countof(HaPassStarboard)},
-    {"Backing Up",HaBackingUp,_countof(HaBackingUp)},
-    {"Blind Bend",HaBlindBend,_countof(HaBlindBend)},
-    {"Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock)},
-    {"Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower)},
-    {"Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing)},
-    {"Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort)},
-    {"Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard)},
-};
-HornActionType BellOne[] = { HORN_ACTION_SHORT };
-HornActionType BellTwo[] = { HORN_ACTION_SHORT, HORN_ACTION_SHORT };
-HornAction Bells[] = {
-    {"One Bell",BellOne,_countof(BellOne)},
-    {"Two Bells",BellTwo,_countof(BellTwo)},
-};
+std::vector<HornAction> HornVector;
 
-#define RELAY1 21
-#define RELAY2 22
+//HornActionType BellOne[] = { HORN_ACTION_SHORT };
+//HornActionType BellTwo[] = { HORN_ACTION_SHORT, HORN_ACTION_SHORT };
+//HornAction Bells[] = {
+//    {"One Bell",BellOne,_countof(BellOne)},
+//    {"Two Bells",BellTwo,_countof(BellTwo)},
+//};
+
+constexpr auto RELAY1 = 21;
+constexpr auto RELAY2 = 22;
 
 void setup() {
 #include <themes/default.h>
 #include <themes/dark.h>
+    HornVector.push_back(HornAction{ "Short Blast", HaShort, _countof(HaShort) });
+	HornVector.push_back(HornAction{ "Long Blast",HaLong,_countof(HaLong) });
+    HornVector.push_back(HornAction{ "Danger",HaDanger,_countof(HaDanger) });
+    HornVector.push_back(HornAction{ "Pass Port Side",HaPassPort,_countof(HaPassPort) });
+    HornVector.push_back(HornAction{ "Pass Starboard Side",HaPassStarboard,_countof(HaPassStarboard) });
+    HornVector.push_back(HornAction{ "Backing Up",HaBackingUp,_countof(HaBackingUp) });
+    HornVector.push_back(HornAction{ "Blind Bend",HaBlindBend,_countof(HaBlindBend) });
+    HornVector.push_back(HornAction{ "Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock) });
+    HornVector.push_back(HornAction{ "Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower) });
+    HornVector.push_back(HornAction{ "Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing) });
+    HornVector.push_back(HornAction{ "Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort) });
+    HornVector.push_back(HornAction{ "Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard) });
+
     ezt::setDebug(INFO);
     ez.begin();
     Wire.begin();
@@ -99,7 +100,7 @@ void setup() {
     prefs.end();
 
     mainMenu.txtSmall();
-    for (HornAction ha : Horns) {
+    for (HornAction ha : HornVector) {
         // build the string
         String menuStr = ha.title + String(" (");
         for (int hix = 0; hix < ha.actionCount; ++hix) {
@@ -158,7 +159,7 @@ void PlayHorn(int hix)
 {
     bool bRepeat1M = false, bRepeat2M = false;
     // get and remember if the first command is a repeat one, inc hix if so to skip
-    switch (*(Horns[hix].actionList)) {
+    switch (*(HornVector[hix].actionList)) {
     case HORN_ACTION_REPEAT_1MIN:
         bRepeat1M = true;
         break;
@@ -168,11 +169,11 @@ void PlayHorn(int hix)
     }
     bool bRun = true;
     bool bCancel = false;
-    ez.header.show(Horns[hix].title);
+    ez.header.show(HornVector[hix].title);
     ez.buttons.show(" #  # Cancel #  #  # ");
     while (bRun) {
-        HornActionType* actionList = Horns[hix].actionList;
-        int count = Horns[hix].actionCount;
+        HornActionType* actionList = HornVector[hix].actionList;
+        int count = HornVector[hix].actionCount;
 		while (!bCancel && count--) {
             uint32_t hornlen = 0;
             switch (*actionList) {
@@ -242,6 +243,7 @@ void Settings()
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
+	menuPlayerSettings.addItem("Custom Sounds", HandleMenuCustom);
     menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Beep Sound", &bBeepSound, "On", "Off", ToggleBool);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
@@ -292,6 +294,27 @@ void Shutdown()
 void Restart()
 {
     ESP.restart();
+}
+
+// edit custom horn sequences
+void HandleMenuCustom()
+{
+    ezMenu menuPlayerSettings("Custom Sounds");
+    menuPlayerSettings.txtSmall();
+    menuPlayerSettings.buttons("up # Del # Add # Back # down #");
+    // list the custom sounds
+    menuPlayerSettings.addItem("NONE");
+    while (true) {
+        menuPlayerSettings.runOnce();
+        String mstr = menuPlayerSettings.pickButton();
+        if (mstr == "Back") {
+            break;
+        }
+        else if (mstr == "Del") {
+        }
+        else if (mstr == "Add") {
+        }
+    }
 }
 
 bool HandleMenuInteger(ezMenu* menu)
