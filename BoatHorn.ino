@@ -13,9 +13,9 @@
 #include <SD.h>
 #include <Preferences.h>
 
-#define _countof(array) (sizeof(array) / sizeof(array[0]))
+//#define _countof(array) (sizeof(array) / sizeof(array[0]))
 
-const char* Version = "Version 0.4";
+const char* Version = "Version 0.5";
 bool HandleMenuInteger(ezMenu* menu);
 bool ToggleBool(ezMenu* menu);
 String FormatInteger(int num, int decimals);
@@ -33,31 +33,11 @@ bool bBeepSound = false;
 bool bValueChanged = false;
 ezHeader header;
 
-// horn action list
-enum HORN_ACTION_TYPE {
-    HORN_ACTION_SHORT,
-    HORN_ACTION_LONG,
-    HORN_ACTION_REPEAT_1MIN,
-    HORN_ACTION_REPEAT_2MIN,
-};
-typedef HORN_ACTION_TYPE HornActionType;
-HornActionType HaShort[] = { HORN_ACTION_SHORT };
-HornActionType HaLong[] = { HORN_ACTION_LONG };
-HornActionType HaDanger[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT, HORN_ACTION_SHORT, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
-HornActionType HaPassPort[] = { HORN_ACTION_SHORT };
-HornActionType HaPassStarboard[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT };
-HornActionType HaBackingUp[] = { HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
-HornActionType HaBlindBend[] = { HORN_ACTION_LONG };
-HornActionType HaBackingOutOfDock[] = {HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT,HORN_ACTION_SHORT};
-HornActionType HaBlindFogPower[] = { HORN_ACTION_REPEAT_1MIN, HORN_ACTION_LONG };
-HornActionType HaBlindFogSailing[] = { HORN_ACTION_REPEAT_2MIN, HORN_ACTION_LONG, HORN_ACTION_SHORT, HORN_ACTION_SHORT };
-HornActionType HaChannelPassingPort[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT };
-HornActionType HaChannelPassingStarboard[] = { HORN_ACTION_LONG,HORN_ACTION_SHORT,HORN_ACTION_SHORT };
-// command lists
+// horn command lists
 struct Horn_Action {
     char* title;
-    HornActionType* actionList;
-    int actionCount;
+    unsigned long repeatTime;
+    std::vector<bool> actionList;   // true for long horn
 };
 typedef Horn_Action HornAction;
 std::vector<HornAction> HornVector;
@@ -71,25 +51,27 @@ std::vector<HornAction> HornVector;
 
 constexpr auto RELAY1 = 21;
 constexpr auto RELAY2 = 22;
+constexpr bool HORN_SHORT = false;
+constexpr bool HORN_LONG = true;
 
 void setup() {
 #include <themes/default.h>
 #include <themes/dark.h>
-    HornVector.push_back(HornAction{ "Short Blast", HaShort, _countof(HaShort) });
-	HornVector.push_back(HornAction{ "Long Blast",HaLong,_countof(HaLong) });
-    HornVector.push_back(HornAction{ "Danger",HaDanger,_countof(HaDanger) });
-    HornVector.push_back(HornAction{ "Pass Port Side",HaPassPort,_countof(HaPassPort) });
-    HornVector.push_back(HornAction{ "Pass Starboard Side",HaPassStarboard,_countof(HaPassStarboard) });
-    HornVector.push_back(HornAction{ "Backing Up",HaBackingUp,_countof(HaBackingUp) });
-    HornVector.push_back(HornAction{ "Blind Bend",HaBlindBend,_countof(HaBlindBend) });
-    HornVector.push_back(HornAction{ "Backing Out of Dock",HaBackingOutOfDock,_countof(HaBackingOutOfDock) });
-    HornVector.push_back(HornAction{ "Blind/Fog Power Vessel",HaBlindFogPower,_countof(HaBlindFogPower) });
-    HornVector.push_back(HornAction{ "Blind/Fog Sailing Vessel",HaBlindFogSailing,_countof(HaBlindFogSailing) });
-    HornVector.push_back(HornAction{ "Channel Passing Port",HaChannelPassingPort,_countof(HaChannelPassingPort) });
-    HornVector.push_back(HornAction{ "Channel Passing Starboard",HaChannelPassingStarboard,_countof(HaChannelPassingStarboard) });
+	HornVector.push_back(HornAction{ "Short Blast", 0, { HORN_SHORT } });
+	HornVector.push_back(HornAction{ "Long Blast", 0, { HORN_LONG } });
+    HornVector.push_back(HornAction{ "Danger", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT, HORN_SHORT, HORN_SHORT } });
+    HornVector.push_back(HornAction{ "Pass Port Side", 0, { HORN_SHORT } });
+    HornVector.push_back(HornAction{ "Pass Starboard Side", 0, { HORN_SHORT,HORN_SHORT } });
+    HornVector.push_back(HornAction{ "Backing Up", 0, { HORN_SHORT,HORN_SHORT,HORN_SHORT } });
+    HornVector.push_back(HornAction{ "Blind Bend", 0, { HORN_LONG } });
+    HornVector.push_back(HornAction{ "Backing Out of Dock", 0, {HORN_LONG,HORN_SHORT,HORN_SHORT,HORN_SHORT} });
+    HornVector.push_back(HornAction{ "Blind/Fog Power Vessel", 60000, { HORN_LONG } });
+    HornVector.push_back(HornAction{ "Blind/Fog Sailing Vessel", 120000, { HORN_LONG, HORN_SHORT, HORN_SHORT } });
+	HornVector.push_back(HornAction{ "Channel Passing Port", 0, { HORN_LONG,HORN_SHORT } });
+	HornVector.push_back(HornAction{ "Channel Passing Starboard", 0,  { HORN_LONG,HORN_SHORT,HORN_SHORT } });
 
     ezt::setDebug(INFO);
-    ez.begin();
+	ez.begin();
     Wire.begin();
 
     // get saved values
@@ -102,24 +84,11 @@ void setup() {
     mainMenu.txtSmall();
     for (HornAction ha : HornVector) {
         // build the string
-        String menuStr = ha.title + String(" (");
-        for (int hix = 0; hix < ha.actionCount; ++hix) {
-            switch (ha.actionList[hix]) {
-            case HORN_ACTION_REPEAT_1MIN:
-                menuStr += "R1";
-                break;
-            case HORN_ACTION_REPEAT_2MIN:
-                menuStr += "R2";
-                break;
-            case HORN_ACTION_SHORT:
-                menuStr += 'S';
-                break;
-            case HORN_ACTION_LONG:
-                menuStr += 'L';
-                break;
-            default:
-                break;
-            }
+		String menuStr = ha.title + String(" (");
+		if (ha.repeatTime)
+			menuStr += "R" + String(ha.repeatTime / 60000);
+		for (auto hix = ha.actionList.begin(); hix != ha.actionList.end(); ++hix) {
+            menuStr += *hix ? "L" : "S";
         }
         menuStr += ')';
         mainMenu.addItem(menuStr);
@@ -157,35 +126,17 @@ void loop() {
 // play the horn sequence
 void PlayHorn(int hix)
 {
-    bool bRepeat1M = false, bRepeat2M = false;
-    // get and remember if the first command is a repeat one, inc hix if so to skip
-    switch (*(HornVector[hix].actionList)) {
-    case HORN_ACTION_REPEAT_1MIN:
-        bRepeat1M = true;
-        break;
-    case HORN_ACTION_REPEAT_2MIN:
-        bRepeat2M = true;
-        break;
-    }
+    // get the repeat timer, 0 for no repeat
+    unsigned long repeatTime = HornVector[hix].repeatTime;
     bool bRun = true;
     bool bCancel = false;
     ez.header.show(HornVector[hix].title);
     ez.buttons.show(" #  # Cancel #  #  # ");
     while (bRun) {
-        HornActionType* actionList = HornVector[hix].actionList;
-        int count = HornVector[hix].actionCount;
+        auto actionList = HornVector[hix].actionList.begin();
+        int count = HornVector[hix].actionList.size();
 		while (!bCancel && count--) {
-            uint32_t hornlen = 0;
-            switch (*actionList) {
-            case HORN_ACTION_SHORT:
-                hornlen = 1000;
-                break;
-            case HORN_ACTION_LONG:
-                hornlen = 5000;
-                break;
-            default:
-                break;
-            }
+			uint32_t hornlen = *actionList ? 5000 : 1000;
             if (hornlen) {
 				digitalWrite(RELAY1, HIGH);
 				if (bBeepSound) {
@@ -194,9 +145,6 @@ void PlayHorn(int hix)
 					m5.Speaker.beep();
 				}
 				bCancel = CheckCancel(hornlen, "horn on", "Second(s) Horn");
-				//if (bBeepSound) {
-				//	m5.Speaker.end();
-				//}
                 digitalWrite(RELAY1, LOW);
             }
 			if (!bCancel && count) {
@@ -208,7 +156,7 @@ void PlayHorn(int hix)
         }
         //Serial.println(ez.buttons.poll());
         // exit if no repeats
-		if (!(bRepeat1M || bRepeat2M)) {
+		if (repeatTime == 0) {
 			bRun = false;
 		}
 		// first check if cancel
@@ -217,10 +165,7 @@ void PlayHorn(int hix)
 		}
 		else {
 			// wait the prescribed amount of time and repeat
-            if (bRepeat1M)
-				bRun = !CheckCancel(1000 * 60, "waiting to repeat", "Repeat");
-            else if (bRepeat2M)
-				bRun = !CheckCancel(2000 * 60, "waiting to repeat", "Repeat");
+			bRun = !CheckCancel(repeatTime, "waiting to repeat", "Repeat");
         }
     }
 }
