@@ -156,13 +156,37 @@ void ResetFactorySounds()
     LoadMainMenu();
 }
 
+// modify the main menu, move, add, and delete
+void ModifyMainMenu()
+{
+    mainMenu.buttons("up # Up # # back # down # Down # # # Delete ");
+    bool done = false;
+	while (!done) {
+		mainMenu.runOnce();
+		String str = mainMenu.pickButton();
+        int which = mainMenu.pick();
+        Serial.println("which: " + String(which));
+		if (str == "Delete") {
+		}
+		else if (str == "Up") {
+		}
+		else if (str == "Down") {
+		}
+		else if (str == "Delete") {
+		}
+		else if (str == "back") {
+            done = true;
+		}
+	}
+}
+
 void EditMainMenu()
 {
     ezMenu menuEditMain("Settings");
     menuEditMain.txtSmall();
     menuEditMain.buttons("up # # Go # Back # down #");
     menuEditMain.addItem("Add Custom Sounds", HandleMenuCustom);
-    menuEditMain.addItem("Modify Main Menu Order");
+    menuEditMain.addItem("Modify Main Menu Order", ModifyMainMenu);
     menuEditMain.addItem("Reset Sounds to Factory", ResetFactorySounds);
     while (true) {
         menuEditMain.runOnce();
