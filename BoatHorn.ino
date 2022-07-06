@@ -159,22 +159,30 @@ void ResetFactorySounds()
 // modify the main menu, move, add, and delete
 void ModifyMainMenu()
 {
-    mainMenu.buttons("up # Up # # back # down # Down # # # Delete ");
+    mainMenu.buttons("up # Up # Add # back # down # Down # # # Delete ");
     bool done = false;
 	while (!done) {
 		mainMenu.runOnce();
 		String str = mainMenu.pickButton();
         int which = mainMenu.pick();
-        Serial.println("which: " + String(which));
-		if (str == "Delete") {
-		}
-		else if (str == "Up") {
+		Serial.println("which: " + String(which) + " " + str);
+		if (str == "Up") {
 		}
 		else if (str == "Down") {
 		}
 		else if (str == "Delete") {
-		}
-		else if (str == "back") {
+			Serial.println("1len: " + String(HornVector.size()));
+			HornVector.erase(HornVector.begin() + which - 1);
+            Serial.println("2len: " + String(HornVector.size()));
+            LoadStorePrefs(false, false);
+            Serial.println("3len: " + String(HornVector.size()));
+            LoadMainMenu();
+            Serial.println("4len: " + String(HornVector.size()));
+        }
+        else if (str == "Add") {
+            HandleMenuCustom();
+        }
+        else if (str == "back") {
             done = true;
 		}
 	}
@@ -185,8 +193,8 @@ void EditMainMenu()
     ezMenu menuEditMain("Settings");
     menuEditMain.txtSmall();
     menuEditMain.buttons("up # # Go # Back # down #");
-    menuEditMain.addItem("Add Custom Sounds", HandleMenuCustom);
-    menuEditMain.addItem("Modify Main Menu Order", ModifyMainMenu);
+    //menuEditMain.addItem("Add Custom Sounds", HandleMenuCustom);
+    menuEditMain.addItem("Modify Main Menu", ModifyMainMenu);
     menuEditMain.addItem("Reset Sounds to Factory", ResetFactorySounds);
     while (true) {
         menuEditMain.runOnce();
@@ -430,6 +438,7 @@ void LoadStorePrefs(bool bLoad, bool bReload)
 	Preferences prefs;
 	prefs.begin(prefsName, bLoad);
 	if (bLoad) {
+        HornVector.clear();
 		nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 1000);
 		bBeepSound = prefs.getBool(PREFS_BEEP_SOUND, false);
 	}
@@ -440,6 +449,7 @@ void LoadStorePrefs(bool bLoad, bool bReload)
 	// see if the horn list is in the prefs
 	if (bReload || (prefs.getInt(PREFS_HORN_LIST_COUNT, 0) == 0 && bLoad)) {
 		// load default values
+        Serial.println("loading default horns");
 		HornVector.push_back(HornAction{ "Short Blast", 0, { HORN_SHORT } });
 		HornVector.push_back(HornAction{ "Long Blast", 0, { HORN_LONG } });
 		HornVector.push_back(HornAction{ "Danger", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT, HORN_SHORT, HORN_SHORT } });
@@ -459,7 +469,7 @@ void LoadStorePrefs(bool bLoad, bool bReload)
     // get the horn list count to loop loading or saving
     int nHornListCount = bLoad ? prefs.getInt(PREFS_HORN_LIST_COUNT) : HornVector.size();
 	if (bLoad) {
-        HornVector.clear();
+        //HornVector.clear();
     }
     else {
 		prefs.putInt(PREFS_HORN_LIST_COUNT, nHornListCount);
@@ -512,6 +522,9 @@ void LoadStorePrefs(bool bLoad, bool bReload)
 void LoadMainMenu()
 {
     mainMenu.txtSmall();
+    while (mainMenu.getItemCount()) {
+        mainMenu.deleteItem(1);
+    }
     for (HornAction ha : HornVector) {
         // build the string
         String menuStr = ha.title + String(" (");
