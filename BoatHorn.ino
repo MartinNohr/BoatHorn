@@ -22,12 +22,14 @@ String FormatInteger(int num, int decimals);
 
 char* prefsName = "boathorn";
 ezMenu mainMenu("Horn Signals");
+// some prefs names and variables
 // timer for pause between blasts
 constexpr auto PREFS_PAUSE_TIME = "pausetime";
 int nPauseTime;    // milliseconds before next blast
 // enable beep sound
 constexpr auto PREFS_BEEP_SOUND = "beepsound";
 bool bBeepSound = false;
+constexpr auto PREFS_HORN_LIST_COUNT = "hornlistcount";
 
 // this is set if any integer values changed by int or bool handlers
 bool bValueChanged = false;
@@ -35,64 +37,28 @@ ezHeader header;
 
 // horn command lists
 struct Horn_Action {
-    char* title;
+    String title;
     unsigned long repeatTime;
     std::vector<bool> actionList;   // true for long horn
 };
 typedef Horn_Action HornAction;
 std::vector<HornAction> HornVector;
-
-//HornActionType BellOne[] = { HORN_ACTION_SHORT };
-//HornActionType BellTwo[] = { HORN_ACTION_SHORT, HORN_ACTION_SHORT };
-//HornAction Bells[] = {
-//    {"One Bell",BellOne,_countof(BellOne)},
-//    {"Two Bells",BellTwo,_countof(BellTwo)},
-//};
+constexpr bool HORN_SHORT = false;
+constexpr bool HORN_LONG = true;
 
 constexpr auto RELAY1 = 21;
 constexpr auto RELAY2 = 22;
-constexpr bool HORN_SHORT = false;
-constexpr bool HORN_LONG = true;
 
 void setup() {
 #include <themes/default.h>
 #include <themes/dark.h>
-	HornVector.push_back(HornAction{ "Short Blast", 0, { HORN_SHORT } });
-	HornVector.push_back(HornAction{ "Long Blast", 0, { HORN_LONG } });
-    HornVector.push_back(HornAction{ "Danger", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT, HORN_SHORT, HORN_SHORT } });
-    HornVector.push_back(HornAction{ "Pass Port Side", 0, { HORN_SHORT } });
-    HornVector.push_back(HornAction{ "Pass Starboard Side", 0, { HORN_SHORT,HORN_SHORT } });
-    HornVector.push_back(HornAction{ "Backing Up", 0, { HORN_SHORT,HORN_SHORT,HORN_SHORT } });
-    HornVector.push_back(HornAction{ "Blind Bend", 0, { HORN_LONG } });
-    HornVector.push_back(HornAction{ "Backing Out of Dock", 0, {HORN_LONG,HORN_SHORT,HORN_SHORT,HORN_SHORT} });
-    HornVector.push_back(HornAction{ "Blind/Fog Power Vessel", 60000, { HORN_LONG } });
-    HornVector.push_back(HornAction{ "Blind/Fog Sailing Vessel", 120000, { HORN_LONG, HORN_SHORT, HORN_SHORT } });
-	HornVector.push_back(HornAction{ "Channel Passing Port", 0, { HORN_LONG,HORN_SHORT } });
-	HornVector.push_back(HornAction{ "Channel Passing Starboard", 0,  { HORN_LONG,HORN_SHORT,HORN_SHORT } });
 
     ezt::setDebug(INFO);
 	ez.begin();
     Wire.begin();
 
-    // get saved values
-    Preferences prefs;
-    prefs.begin(prefsName, true);
-    nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 1000);
-    bBeepSound = prefs.getBool(PREFS_BEEP_SOUND, false);
-    prefs.end();
-
-    mainMenu.txtSmall();
-    for (HornAction ha : HornVector) {
-        // build the string
-		String menuStr = ha.title + String(" (");
-		if (ha.repeatTime)
-			menuStr += "R" + String(ha.repeatTime / 60000);
-		for (auto hix = ha.actionList.begin(); hix != ha.actionList.end(); ++hix) {
-            menuStr += *hix ? "L" : "S";
-        }
-        menuStr += ')';
-        mainMenu.addItem(menuStr);
-    }
+    LoadStorePrefs(true, false);
+    LoadMainMenu();
     //ez.header.title("Horn Blower");
     //ez.header.show();
     //ez.canvas.font(&FreeSans12pt7b);
@@ -183,12 +149,35 @@ bool CheckCancel(unsigned long nWait, String strTitle, String strLabel)
     return false;
 }
 
+// reset factory sound list
+void ResetFactorySounds()
+{
+    LoadStorePrefs(true, true);
+    LoadMainMenu();
+}
+
+void EditMainMenu()
+{
+    ezMenu menuEditMain("Settings");
+    menuEditMain.txtSmall();
+    menuEditMain.buttons("up # # Go # Back # down #");
+    menuEditMain.addItem("Add Custom Sounds", HandleMenuCustom);
+    menuEditMain.addItem("Modify Main Menu Order");
+    menuEditMain.addItem("Reset Sounds to Factory", ResetFactorySounds);
+    while (true) {
+        menuEditMain.runOnce();
+        if (menuEditMain.pickButton() == "Back") {
+            break;
+        }
+    }
+}
+
 void Settings()
 {
     ezMenu menuPlayerSettings("Settings");
     menuPlayerSettings.txtSmall();
     menuPlayerSettings.buttons("up # # Go # Back # down #");
-	menuPlayerSettings.addItem("Custom Sounds", HandleMenuCustom);
+	menuPlayerSettings.addItem("Edit Main Menu", EditMainMenu);
     menuPlayerSettings.addItem("Time Between Blasts (mS)", &nPauseTime, 250, 2000, 0, HandleMenuInteger);
     menuPlayerSettings.addItem("Beep Sound", &bBeepSound, "On", "Off", ToggleBool);
     menuPlayerSettings.addItem("Clear Stored Values", ClearStoredValues);
@@ -205,10 +194,7 @@ void Settings()
                 Serial.println("values changed");
                 bValueChanged = false;
                 Preferences prefs;
-                prefs.begin(prefsName);
-                prefs.putInt(PREFS_PAUSE_TIME, nPauseTime);
-                prefs.putBool(PREFS_BEEP_SOUND, bBeepSound);
-                prefs.end();
+                LoadStorePrefs(false, false);
             }
             break;
         }
@@ -411,4 +397,106 @@ void CheckUpdateBin()
     //else {
     //    ez.msgBox("file missing", "no bin file", "Cancel # OK # Cancel");
     //}
+}
+
+// load or save the eeprom preferences
+void LoadStorePrefs(bool bLoad, bool bReload)
+{
+	// get saved values
+	Preferences prefs;
+	prefs.begin(prefsName, bLoad);
+	if (bLoad) {
+		nPauseTime = prefs.getInt(PREFS_PAUSE_TIME, 1000);
+		bBeepSound = prefs.getBool(PREFS_BEEP_SOUND, false);
+	}
+	else {
+		prefs.putInt(PREFS_PAUSE_TIME, nPauseTime);
+		prefs.putBool(PREFS_BEEP_SOUND, bBeepSound);
+	}
+	// see if the horn list is in the prefs
+	if (bReload || (prefs.getInt(PREFS_HORN_LIST_COUNT, 0) == 0 && bLoad)) {
+		// load default values
+		HornVector.push_back(HornAction{ "Short Blast", 0, { HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Long Blast", 0, { HORN_LONG } });
+		HornVector.push_back(HornAction{ "Danger", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT, HORN_SHORT, HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Pass Port Side", 0, { HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Pass Starboard Side", 0, { HORN_SHORT, HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Backing Up", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Blind Bend", 0, { HORN_LONG } });
+		HornVector.push_back(HornAction{ "Backing Out of Dock", 0, {HORN_LONG, HORN_SHORT, HORN_SHORT, HORN_SHORT} });
+		HornVector.push_back(HornAction{ "Blind/Fog Power Vessel", 60000, { HORN_LONG } });
+		HornVector.push_back(HornAction{ "Blind/Fog Sailing Vessel", 120000, { HORN_LONG, HORN_SHORT, HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Channel Passing Port", 0, { HORN_LONG, HORN_SHORT } });
+		HornVector.push_back(HornAction{ "Channel Passing Starboard", 0,  { HORN_LONG, HORN_SHORT, HORN_SHORT } });
+        prefs.end();
+        LoadStorePrefs(false, false);
+        return;
+	}
+    // get the horn list count to loop loading or saving
+    int nHornListCount = bLoad ? prefs.getInt(PREFS_HORN_LIST_COUNT) : HornVector.size();
+	if (bLoad) {
+        HornVector.clear();
+    }
+    else {
+		prefs.putInt(PREFS_HORN_LIST_COUNT, nHornListCount);
+    }
+    for (int nHornIx = 0; nHornIx < nHornListCount; ++nHornIx) {
+        String sName = "horn" + String(nHornIx);
+        String sNameTitle = sName + "Title";
+        String sNameRepeat = sName + "Repeat";
+        HornAction addHornAction;
+        //Serial.println(sNameTitle + ":" + HornVector[nHornIx].title);
+        //Serial.println(sNameRepeat + ":" + String(HornVector[nHornIx].repeatTime));
+        // handle the title and repeat values
+        if (bLoad) {
+			addHornAction.title = prefs.getString(sNameTitle.c_str(), "");
+            addHornAction.repeatTime = prefs.getULong(sNameRepeat.c_str());
+        }
+        else {
+            prefs.putString(sNameTitle.c_str(), HornVector[nHornIx].title);
+            prefs.putULong(sNameRepeat.c_str(), HornVector[nHornIx].repeatTime);
+        }
+        // now loop through the action list
+        String sActionCount = "action" + String(nHornIx) + "Count";
+        int nActionCount = bLoad ? prefs.getInt(sActionCount.c_str()) : HornVector[nHornIx].actionList.size();
+		//Serial.println(" " + sActionCount + ":" + String(nActionCount));
+        for (int nActionIx = 0; nActionIx < nActionCount; ++nActionIx) {
+            String sActionName = "action" + String(nHornIx) + "_" + String(nActionIx);
+            if (bLoad) {
+                // get the value
+                bool hact = prefs.getBool(sActionName.c_str());
+                addHornAction.actionList.push_back(hact);
+            }
+            else {
+                prefs.putBool(sActionName.c_str(), HornVector[nHornIx].actionList[nActionIx]);
+            }
+            //Serial.println("  " + sActionName + ":" + (HornVector[nHornIx].actionList[nActionIx] ? "True" : "False"));
+        }
+        if (bLoad) {
+            // add the finished horn action
+            HornVector.push_back(addHornAction);
+        }
+        else {
+            // set the action count
+            prefs.putInt(sActionCount.c_str(), nActionCount);
+        }
+    }
+	prefs.end();
+}
+
+// load the main menu
+void LoadMainMenu()
+{
+    mainMenu.txtSmall();
+    for (HornAction ha : HornVector) {
+        // build the string
+        String menuStr = ha.title + String(" (");
+        if (ha.repeatTime)
+            menuStr += "R" + String(ha.repeatTime / 60000);
+        for (auto hix = ha.actionList.begin(); hix != ha.actionList.end(); ++hix) {
+            menuStr += *hix ? "L" : "S";
+        }
+        menuStr += ')';
+        mainMenu.addItem(menuStr);
+    }
 }
