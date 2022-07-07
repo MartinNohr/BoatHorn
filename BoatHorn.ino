@@ -161,22 +161,50 @@ void ModifyMainMenu()
 {
     mainMenu.buttons("up # Up # Add # back # down # Down # # # Delete ");
     bool done = false;
+    bool bChange = false;
 	while (!done) {
-		mainMenu.runOnce();
-		String str = mainMenu.pickButton();
-        int which = mainMenu.pick();
-		//Serial.println("which: " + String(which) + " " + str);
-		if (str == "Up") {
-		}
-		else if (str == "Down") {
-		}
-		else if (str == "Delete") {
-			HornVector.erase(HornVector.begin() + which - 1);
+        if (bChange) {
             LoadStorePrefs(false, false);
             LoadMainMenu();
+            bChange = false;
+        }
+        HornAction ha;
+		mainMenu.runOnce();
+		String str = mainMenu.pickButton();
+        // 0 indexed selection
+        int which = mainMenu.pick() - 1;
+		//Serial.println("which: " + String(which) + " " + str);
+		if (str == "Up") {
+            // must be 1 or more
+            if (which > 0) {
+                // save it
+                ha = HornVector[which];
+                // move the one above down
+				HornVector[which] = HornVector[which - 1];
+                // put the saved one
+                HornVector[which - 1] = ha;
+                bChange = true;
+            }
+		}
+		else if (str == "Down") {
+            // must be less than size - 1
+			if (which < HornVector.size() - 1) {
+                // save it
+                ha = HornVector[which];
+                // move the one below above
+				HornVector[which] = HornVector[which + 1];
+                // put the saved one
+				HornVector[which + 1] = ha;
+                bChange = true;
+            }
+        }
+		else if (str == "Delete") {
+			HornVector.erase(HornVector.begin() + which);
+            bChange = true;
         }
         else if (str == "Add") {
             HandleMenuCustom();
+            bChange = true;
         }
         else if (str == "back") {
             done = true;
@@ -189,7 +217,6 @@ void EditMainMenu()
     ezMenu menuEditMain("Settings");
     menuEditMain.txtSmall();
     menuEditMain.buttons("up # # Go # Back # down #");
-    //menuEditMain.addItem("Add Custom Sounds", HandleMenuCustom);
     menuEditMain.addItem("Modify Main Menu", ModifyMainMenu);
     menuEditMain.addItem("Reset Sounds to Factory", ResetFactorySounds);
     while (true) {
@@ -282,8 +309,6 @@ void HandleMenuCustom()
         String mstr = menuHornAction.pickButton();
         if (mstr == "Done") {
             HornVector.push_back(hact);
-            LoadStorePrefs(false, false);
-            LoadMainMenu();
             break;
         }
         // delete the last entry in the actions
