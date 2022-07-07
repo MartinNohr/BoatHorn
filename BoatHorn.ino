@@ -165,19 +165,15 @@ void ModifyMainMenu()
 		mainMenu.runOnce();
 		String str = mainMenu.pickButton();
         int which = mainMenu.pick();
-		Serial.println("which: " + String(which) + " " + str);
+		//Serial.println("which: " + String(which) + " " + str);
 		if (str == "Up") {
 		}
 		else if (str == "Down") {
 		}
 		else if (str == "Delete") {
-			Serial.println("1len: " + String(HornVector.size()));
 			HornVector.erase(HornVector.begin() + which - 1);
-            Serial.println("2len: " + String(HornVector.size()));
             LoadStorePrefs(false, false);
-            Serial.println("3len: " + String(HornVector.size()));
             LoadMainMenu();
-            Serial.println("4len: " + String(HornVector.size()));
         }
         else if (str == "Add") {
             HandleMenuCustom();
@@ -223,7 +219,7 @@ void Settings()
         if (menuPlayerSettings.pickButton() == "Back") {
             // see if anything changed
             if (bValueChanged) {
-                Serial.println("values changed");
+                //Serial.println("values changed");
                 bValueChanged = false;
                 Preferences prefs;
                 LoadStorePrefs(false, false);
@@ -259,23 +255,61 @@ void Restart()
     ESP.restart();
 }
 
+// build the action display string
+String ActionText(HornAction ha)
+{
+    String retval = ha.title + String(" (");
+    if (ha.repeatTime)
+        retval += "R" + String(ha.repeatTime / 60000);
+    for (auto hix = ha.actionList.begin(); hix != ha.actionList.end(); ++hix) {
+        retval += *hix ? "L" : "S";
+    }
+    retval += ')';
+    return retval;
+}
+
 // edit custom horn sequences
 void HandleMenuCustom()
 {
-    ezMenu menuPlayerSettings("Custom Sounds");
-    menuPlayerSettings.txtSmall();
-    menuPlayerSettings.buttons("up # Del # Add # Back # down #");
-    // list the custom sounds
-    menuPlayerSettings.addItem("NONE");
+    ezMenu menuHornAction("Add Horn Sound");
+    menuHornAction.txtSmall();
+    menuHornAction.buttons("Short # Long # Name # Done # Rpt1 # Rpt2 # Cancel # No Rpt # Del");
+    HornAction hact = { "" };
     while (true) {
-        menuPlayerSettings.runOnce();
-        String mstr = menuPlayerSettings.pickButton();
-        if (mstr == "Back") {
+        menuHornAction.deleteItem(1);
+		menuHornAction.addItem(ActionText(hact));
+        menuHornAction.runOnce();
+        String mstr = menuHornAction.pickButton();
+        if (mstr == "Done") {
+            HornVector.push_back(hact);
+            LoadStorePrefs(false, false);
+            LoadMainMenu();
             break;
         }
+        // delete the last entry in the actions
         else if (mstr == "Del") {
+            hact.actionList.pop_back();
         }
-        else if (mstr == "Add") {
+        else if (mstr == "Cancel") {
+            break;
+        }
+        else if (mstr == "No Rpt") {
+            hact.repeatTime = 0;
+        }
+        else if (mstr == "Rpt1") {
+            hact.repeatTime = 60000;
+        }
+        else if (mstr == "Rpt2") {
+            hact.repeatTime = 120000;
+        }
+        else if (mstr == "Short") {
+            hact.actionList.push_back(false);
+        }
+        else if (mstr == "Long") {
+            hact.actionList.push_back(true);
+        }
+        else if (mstr == "Name") {
+            hact.title = ez.textInput("Enter Action Name");
         }
     }
 }
@@ -410,11 +444,11 @@ void CheckUpdateBin()
             if (binFile) {
                 pUpdateProgress = new ezProgressBar("Updating", "Progress");
                 size_t binSize = binFile.size();
-                Serial.println("size: " + String(binSize));
+                //Serial.println("size: " + String(binSize));
                 Update.begin(binSize);
                 Update.onProgress(ProgressDisplay);
 				size_t bytesWritten = Update.writeStream(binFile);
-                Serial.println("written: " + String(bytesWritten));
+                //Serial.println("written: " + String(bytesWritten));
                 Update.end();
                 binFile.close();
                 str = ez.msgBox("Update File", "Delete BIN file?", "No # Yes # No");
@@ -449,7 +483,7 @@ void LoadStorePrefs(bool bLoad, bool bReload)
 	// see if the horn list is in the prefs
 	if (bReload || (prefs.getInt(PREFS_HORN_LIST_COUNT, 0) == 0 && bLoad)) {
 		// load default values
-        Serial.println("loading default horns");
+        //Serial.println("loading default horns");
 		HornVector.push_back(HornAction{ "Short Blast", 0, { HORN_SHORT } });
 		HornVector.push_back(HornAction{ "Long Blast", 0, { HORN_LONG } });
 		HornVector.push_back(HornAction{ "Danger", 0, { HORN_SHORT,HORN_SHORT, HORN_SHORT, HORN_SHORT, HORN_SHORT } });
@@ -527,13 +561,7 @@ void LoadMainMenu()
     }
     for (HornAction ha : HornVector) {
         // build the string
-        String menuStr = ha.title + String(" (");
-        if (ha.repeatTime)
-            menuStr += "R" + String(ha.repeatTime / 60000);
-        for (auto hix = ha.actionList.begin(); hix != ha.actionList.end(); ++hix) {
-            menuStr += *hix ? "L" : "S";
-        }
-        menuStr += ')';
+        String menuStr = ActionText(ha);
         mainMenu.addItem(menuStr);
     }
 }
